@@ -59,6 +59,7 @@ public struct UsageReader {
             defaults: defaults,
             claudeCards: accountAssembly.claudeCards,
             codexCards: accountAssembly.codexCards,
+            grokCards: accountAssembly.grokCards,
             claudeIdentityKeys: accountAssembly.identityKeysByCard
         )
         let registry = WidgetRegistry.from(providers)

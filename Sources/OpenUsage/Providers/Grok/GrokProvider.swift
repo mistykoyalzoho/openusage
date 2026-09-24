@@ -2,7 +2,11 @@ import Foundation
 
 @MainActor
 final class GrokProvider: ProviderRuntime {
-    let provider = Provider(
+    let provider: Provider
+    let authEntryKey: String?
+
+    init(
+        provider: Provider = Provider(
         id: "grok",
         displayName: "Grok",
         icon: .providerMark("grok"),
@@ -21,9 +25,12 @@ final class GrokProvider: ProviderRuntime {
         authStore: GrokAuthStore = GrokAuthStore(),
         usageClient: GrokUsageClient = GrokUsageClient(),
         logUsageScanner: GrokLogUsageScanner = GrokLogUsageScanner(),
+        authEntryKey: String? = nil,
         now: @escaping @Sendable () -> Date = Date.init,
         pricing: @escaping @Sendable () async -> ModelPricing = { await ModelPricingStore.shared.current() }
     ) {
+        self.provider = provider
+        self.authEntryKey = authEntryKey
         self.authStore = authStore
         self.usageClient = usageClient
         self.logUsageScanner = logUsageScanner
@@ -47,9 +54,12 @@ final class GrokProvider: ProviderRuntime {
     }
 
     func hasLocalCredentials() async -> Bool {
-        // Same source as `refresh()`: ~/.grok/auth.json with at least one keyed entry.
-        await loadOffMainActor { [authStore] in
-            ((try? authStore.loadAuthCandidates()) ?? []).isEmpty == false
+        await loadOffMainActor { [authStore, authEntryKey] in
+            let candidates = (try? authStore.loadAuthCandidates()) ?? []
+            if let authEntryKey {
+                return candidates.contains { $0.entryKey == authEntryKey }
+            }
+            return !candidates.isEmpty
         }
     }
 
@@ -62,7 +72,10 @@ final class GrokProvider: ProviderRuntime {
     }
 
     private func loadAndProbe() async throws -> ProviderSnapshot {
-        let candidates = try authStore.loadAuthCandidates()
+        var candidates = try authStore.loadAuthCandidates()
+        if let authEntryKey {
+            candidates = candidates.filter { $0.entryKey == authEntryKey }
+        }
         var sawExpiredCandidate = false
 
         for var state in candidates {

@@ -23,6 +23,7 @@ struct ProviderAccountAssembly {
     let identityKeysByCard: [String: String]
     var claudeCards: [ClaudeAccountCard] = []
     var codexCards: [CodexAccountCard] = []
+    var grokCards: [GrokAccountCard] = []
 
     /// `waitsForLoginShell`: true for the menu-bar app (a Finder/Dock launch inherits no shell
     /// exports, so the pass leans on the login-shell layers), false for the one-shot CLI (a terminal
@@ -89,7 +90,11 @@ struct ProviderAccountAssembly {
     ) async -> ProviderAccountAssembly {
         let codexCards = families.contains("codex")
             ? await makeCodexCards(observer: observer, accountsStore: accountsStore) : []
+        let grokCards = families.contains("grok")
+            ? await makeGrokCards(observer: observer, accountsStore: accountsStore) : []
         var identityKeys = Dictionary(uniqueKeysWithValues: codexCards.map { ($0.id, $0.identity.key) })
+        let grokIdentities = Dictionary(uniqueKeysWithValues: grokCards.map { ($0.id, $0.authEntryKey) })
+        identityKeys.merge(grokIdentities) { current, _ in current }
         var observations: [ProviderAccountsStore.Observation] = []
 
         let outcomes: [(family: String, outcome: DefaultAccountObserver.Outcome)] = [

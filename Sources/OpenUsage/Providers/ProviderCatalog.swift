@@ -8,6 +8,7 @@ enum ProviderCatalog {
         defaults: UserDefaults = .standard,
         claudeCards: [ClaudeAccountCard] = [],
         codexCards: [CodexAccountCard] = [],
+        grokCards: [GrokAccountCard] = [],
         claudeIdentityKeys: [String: String] = [:]
     ) -> [ProviderRuntime] {
         // Default provider order (see AGENTS.md "## Providers"): the three established providers first,
@@ -61,8 +62,26 @@ enum ProviderCatalog {
             CursorProvider(),
             AntigravityProvider(),
             CopilotProvider(defaults: defaults),
-            DevinProvider(),
-            GrokProvider(),
+            DevinProvider()
+        ]
+        if grokCards.isEmpty {
+            providers.append(GrokProvider())
+        } else {
+            providers += grokCards.map { card in
+                GrokProvider(
+                    provider: Provider(
+                        id: card.id,
+                        displayName: card.displayName,
+                        icon: .providerMark("grok"),
+                        links: [
+                            .init(label: "Usage", url: "https://grok.com/?_s=usage")
+                        ]
+                    ),
+                    authEntryKey: card.authEntryKey
+                )
+            }
+        }
+        providers += [
             OllamaProvider(),
             OpenCodeProvider(),
             OpenRouterProvider(),
